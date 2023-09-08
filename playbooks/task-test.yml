@@ -1,0 +1,47 @@
+---
+- name: Test
+  hosts: master01
+  vars:
+    HOST_COUNT: "{{ groups['master'] | length }}"
+    MSG : "Hello"
+    MAIN_MASTER: "{{ inventory_hostname }}"
+  tasks:
+
+  # hostname = ansible_host 
+  # ipaddr = ansible_default_ipv4.address
+
+  # - name: Get Certificate 
+  #   ansible.builtin.command: kubeadm init phase upload-certs --upload-certs
+  #   register: upload_certs
+
+  # - name: Get Master Join Command
+  #   ansible.builtin.command: kubeadm token create --certificate-key {{ upload_certs.stdout_lines[2] }} --print-join-command
+  #   register: master_join
+
+  # - name: Debug Cert
+  #   ansible.builtin.debug:
+  #     msg: "{{ master_join.stdout_lines[0] }}"
+
+  - name: Get Certificate for join cluster
+    ansible.builtin.command: kubeadm init phase upload-certs --upload-certs
+    changed_when: false
+    register: upload_certs
+    when: HOST_COUNT > "1"
+
+  - name: Debug Certificate for join cluster
+    ansible.builtin.debug:
+      msg: "{{ upload_certs.stdout_lines[2] }}"
+
+  - name: Get Command join control plane in cluster
+    ansible.builtin.command: kubeadm token create --certificate-key {{ upload_certs.stdout_lines[2] }} --print-join-command
+    changed_when: false
+    register: master_join
+
+  - name: Debug Certificate for join cluster
+    ansible.builtin.debug:
+      msg: "{{ master_join.stdout_lines[0] }}"
+
+  - name: Join master
+    ansible.builtin.command: "{{ master_join.stdout }}"
+    register: apiserver_join
+    changed_when: false
